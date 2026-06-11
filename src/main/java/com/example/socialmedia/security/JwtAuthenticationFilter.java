@@ -24,28 +24,73 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+                                    FilterChain filterChain)
+            throws ServletException, IOException {
+
         try {
-            String jwt = extractJwtFromRequest(request);
-            if (StringUtils.hasText(jwt) && jwtTokenProvider.validateToken(jwt)) {
-                Long userId = jwtTokenProvider.getUserIdFromToken(jwt);
-                UserDetails userDetails = userDetailsService.loadUserById(userId);
-                UsernamePasswordAuthenticationToken auth =
-                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(auth);
+
+            String path = request.getRequestURI();
+
+            // =========================================
+            // PUBLIC ENDPOINTS (NO JWT REQUIRED)
+            // =========================================
+            if (isPublicPath(path)) {
+                filterChain.doFilter(request, response);
+                return;
             }
+
+            // =========================================
+            // JWT EXTRACTION
+            // =========================================
+            String jwt = extractJwtFromRequest(request);
+
+            if (StringUtils.hasText(jwt) && jwtTokenProvider.validateToken(jwt)) {
+
+                Long userId = jwtTokenProvider.getUserIdFromToken(jwt);
+
+                UserDetails userDetails = userDetailsService.loadUserById(userId);
+
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities()
+                        );
+
+                authentication.setDetails(
+                        new WebAuthenticationDetailsSource().buildDetails(request)
+                );
+
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
+
         } catch (Exception ex) {
-            logger.error("Could not set user authentication in security context", ex);
+            logger.error("JWT Authentication failed", ex);
         }
+
         filterChain.doFilter(request, response);
     }
 
+    // =========================================
+    // PUBLIC PATHS CONFIGURATION
+    // =========================================
+    private boolean isPublicPath(String path) {
+        return path.startsWith("/auth")
+                || path.startsWith("/swagger-ui")
+                || path.startsWith("/v3/api-docs")
+                || path.startsWith("/users");
+    }
+
+    // =========================================
+    // EXTRACT TOKEN FROM HEADER
+    // =========================================
     private String extractJwtFromRequest(HttpServletRequest request) {
         String bearer = request.getHeader("Authorization");
+
         if (StringUtils.hasText(bearer) && bearer.startsWith("Bearer ")) {
             return bearer.substring(7);
         }
+
         return null;
     }
 }
