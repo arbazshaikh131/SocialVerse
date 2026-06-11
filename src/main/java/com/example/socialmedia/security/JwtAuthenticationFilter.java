@@ -29,30 +29,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
 
-            String path = request.getRequestURI();
-            if (path.startsWith("/auth")
-        || path.startsWith("/users")
-        || path.startsWith("/swagger-ui")
-        || path.startsWith("/v3/api-docs")
-        || path.equals("/")) {
-
-    filterChain.doFilter(request, response);
-    return;
-}
-
-            // =========================================
-            // PUBLIC ENDPOINTS (NO JWT REQUIRED)
-            // =========================================
-            if (isPublicPath(path)) {
-                filterChain.doFilter(request, response);
-                return;
-            }
-
-            // =========================================
-            // JWT EXTRACTION
-            // =========================================
+            // 1. Get token
             String jwt = extractJwtFromRequest(request);
 
+            // 2. Validate + set authentication
             if (StringUtils.hasText(jwt) && jwtTokenProvider.validateToken(jwt)) {
 
                 Long userId = jwtTokenProvider.getUserIdFromToken(jwt);
@@ -80,19 +60,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    // =========================================
-    // PUBLIC PATHS CONFIGURATION
-    // =========================================
-    private boolean isPublicPath(String path) {
-        return path.startsWith("/auth")
-                || path.startsWith("/swagger-ui")
-                || path.startsWith("/v3/api-docs")
-                || path.startsWith("/users");
-    }
-
-    // =========================================
-    // EXTRACT TOKEN FROM HEADER
-    // =========================================
     private String extractJwtFromRequest(HttpServletRequest request) {
         String bearer = request.getHeader("Authorization");
 
