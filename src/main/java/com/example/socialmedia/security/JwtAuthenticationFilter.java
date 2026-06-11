@@ -30,6 +30,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
 
             String path = request.getRequestURI();
+            if (path.startsWith("/auth")
+        || path.startsWith("/users")
+        || path.startsWith("/swagger-ui")
+        || path.startsWith("/v3/api-docs")
+        || path.equals("/")) {
+
+    filterChain.doFilter(request, response);
+    return;
+}
 
             // =========================================
             // PUBLIC ENDPOINTS (NO JWT REQUIRED)
