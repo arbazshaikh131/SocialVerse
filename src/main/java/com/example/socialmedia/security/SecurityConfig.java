@@ -15,7 +15,7 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
 
-                // PUBLIC ENDPOINTS
+                // ✅ OPEN (NO LOGIN REQUIRED)
                 .requestMatchers(
                         "/",
                         "/auth/**",
@@ -24,7 +24,7 @@ public class SecurityConfig {
                         "/v3/api-docs/**"
                 ).permitAll()
 
-                // EVERYTHING ELSE SECURED
+                // 🔒 EVERYTHING ELSE NEEDS LOGIN
                 .anyRequest().authenticated()
             );
 
